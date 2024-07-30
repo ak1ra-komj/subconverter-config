@@ -1,0 +1,17 @@
+[Unit]
+Description=Subconverter Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+PIDFile=/run/subconverter.pid
+DynamicUser=yes
+WorkingDirectory={{ working_dir }}
+ExecStart={{ working_dir }}/subconverter
+Restart=on-failure
+# Don't restart in the case of configuration error
+RestartPreventExitStatus=23
+
+[Install]
+WantedBy=multi-user.target

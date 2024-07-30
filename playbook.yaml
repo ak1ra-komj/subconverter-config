@@ -1,0 +1,41 @@
+- name: Deploy playbook
+  hosts: "{{ playbook_hosts | default('localhost') }}"
+  vars:
+    systemd_dir: /etc/systemd/system
+    working_dir: /opt/subconverter
+  tasks:
+    - name: ensure rsync is installed
+      ansible.builtin.package:
+        name:
+          - rsync
+        state: present
+
+    - name: Template subconverter.service unit
+      ansible.builtin.template:
+        src: subconverter.service.j2
+        dest: "{{ systemd_dir }}/subconverter.service"
+        mode: "0644"
+      notify:
+        - Ensure systemd daemon-reload
+
+    - name: Sync subconverter config to remote host
+      ansible.builtin.synchronize:
+        src: ./
+        dest: "{{ working_dir }}"
+        delete: true
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=examples"
+      notify:
+        - Ensure service restarted
+
+  handlers:
+    - name: Ensure systemd daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Ensure service restarted
+      ansible.builtin.service:
+        name: subconverter
+        state: restarted
+        enabled: true
